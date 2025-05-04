@@ -15,7 +15,7 @@ from torch_scatter import scatter
 from utils.seed import seed_all
 
 # train a detector
-from pygod.models import AdONE
+from pygod.detector import AdONE
 
 # %% args
 
@@ -124,7 +124,7 @@ def auc_eval(pred, y):
 # %% run training
 
 model.fit(data_h, yh)
-score = model.decision_scores_
+score = model.decision_score_
 
 score_u = score[:nu]
 score_v = score[nu:]

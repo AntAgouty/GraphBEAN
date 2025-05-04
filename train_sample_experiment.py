@@ -201,9 +201,9 @@ def train(epoch, check_counter):
         # print(f"training : {time.time() - start} s")
 
         last_adj_e = adjacencies[-1].adj_e
-        xu_target = xu[last_adj_e.u_id].to(device)
-        xv_target = xv[last_adj_e.v_id].to(device)
-        xe_target = xe[last_adj_e.e_id].to(device)
+        xu_target = xu.to(device)[last_adj_e.u_id]
+        xv_target = xv.to(device)[last_adj_e.v_id]
+        xe_target = xe.to(device)[last_adj_e.e_id]
 
         loss, loss_component = reconstruction_loss(
             xu=xu_target,

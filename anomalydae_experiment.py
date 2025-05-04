@@ -16,7 +16,7 @@ from torch_scatter import scatter
 from utils.seed import seed_all
 
 # train a detector
-from pygod.models import AnomalyDAE
+from pygod.detector import AnomalyDAE
 
 # %% args
 
@@ -98,8 +98,8 @@ data_h = Data(x=xh, edge_index=edge_index_h, y=yh)
 
 device = torch.device(f'cuda:{args["gpu"]}' if torch.cuda.is_available() else "cpu")
 model = AnomalyDAE(
-    embed_dim=args["hidden_channels"],
-    out_dim=args["hidden_channels"],
+    emb_dim=args["hidden_channels"],
+    hid_dim=args["hidden_channels"],
     dropout=args["dropout_prob"],
     alpha=args["alpha"],
     epoch=args["n_epoch"],
@@ -127,7 +127,7 @@ def auc_eval(pred, y):
 # %% run training
 
 model.fit(data_h, yh)
-score = model.decision_scores_
+score = model.decision_score_
 
 score_u = score[:nu]
 score_v = score[nu:]

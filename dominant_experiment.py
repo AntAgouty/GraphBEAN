@@ -17,7 +17,7 @@ from torch_scatter import scatter
 from utils.seed import seed_all
 
 # train a dominant detector
-from pygod.models import DOMINANT
+from pygod.detector import DOMINANT
 
 # %% args
 
@@ -103,7 +103,7 @@ model = DOMINANT(
     hid_dim=args["hidden_channels"],
     num_layers=4,
     dropout=args["dropout_prob"],
-    alpha=args["alpha"],
+    weight=args["alpha"],
     epoch=args["n_epoch"],
     lr=args["lr"],
     verbose=True,
@@ -131,7 +131,7 @@ def auc_eval(pred, y):
 print("ready to run")
 
 model.fit(data_h, yh)
-score = model.decision_scores_
+score = model.decision_score_
 
 score_u = score[:nu]
 score_v = score[nu:]

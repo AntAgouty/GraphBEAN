@@ -1,17 +1,15 @@
+# models/conv.py
 # Copyright 2021 Grabtaxi Holdings Pte Ltd (GRAB), All rights reserved.
-# Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
+# MIT-style licence – see LICENSE in the repo.
 
 from typing import Optional, Tuple
 import torch
-
 from torch import Tensor
 import torch.nn as nn
 from torch_sparse import SparseTensor, matmul
 from torch_scatter import scatter
-
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.dense.linear import Linear
-
 from torch_geometric.typing import PairTensor, OptTensor
 
 
@@ -23,10 +21,9 @@ class BEANConv(MessagePassing):
         node_self_loop: bool = True,
         normalize: bool = True,
         bias: bool = True,
-        **kwargs
+        **kwargs,
     ):
-
-        super(BEANConv, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -76,17 +73,21 @@ class BEANConv(MessagePassing):
         if self.output_has_edge_channel:
             self.lin_e.reset_parameters()
 
+    # ---------------------------------------------------------
+    # public forward – keeps the original `xe=` argument
+    # ---------------------------------------------------------
     def forward(
         self, x: PairTensor, adj: SparseTensor, xe: OptTensor = None
     ) -> Tuple[PairTensor, Tensor]:
-        """"""
 
         assert self.input_has_edge_channel == (xe is not None)
 
-        # propagate_type: (x: PairTensor)
-        (out_u, out_v), out_e = self.propagate(adj, x=x, xe=xe)
+        # make edge-features visible to message_and_aggregate()
+        self._cached_xe = xe
 
-        # lin layer
+        # no extra kwargs allowed with SparseTensor in PyG ≥ 2.3
+        (out_u, out_v), out_e = self.propagate(adj, x=x)
+
         out_u = self.lin_u(out_u)
         out_v = self.lin_v(out_v)
         if self.output_has_edge_channel:
@@ -100,29 +101,31 @@ class BEANConv(MessagePassing):
 
         return (out_u, out_v), out_e
 
+    # ---------------------------------------------------------
+    # one-shot message + aggregate
+    # ---------------------------------------------------------
     def message_and_aggregate(
-        self, adj: SparseTensor, x: PairTensor, xe: OptTensor
+        self, adj: SparseTensor, x: PairTensor
     ) -> Tuple[PairTensor, Tensor]:
 
+        xe: OptTensor = getattr(self, "_cached_xe", None)
         xu, xv = x
         adj = adj.set_value(None, layout=None)
 
-        # messages node to node
+        # node-to-node messages
         msg_v2u_mean = matmul(adj, xv, reduce="mean")
         msg_v2u_sum = matmul(adj, xv, reduce="max")
-
         msg_u2v_mean = matmul(adj.t(), xu, reduce="mean")
         msg_u2v_sum = matmul(adj.t(), xu, reduce="max")
 
-        # messages edge to node
+        # edge-to-node messages
         if xe is not None:
             msg_e2u_mean = scatter(xe, adj.storage.row(), dim=0, reduce="mean")
             msg_e2u_sum = scatter(xe, adj.storage.row(), dim=0, reduce="max")
-
             msg_e2v_mean = scatter(xe, adj.storage.col(), dim=0, reduce="mean")
             msg_e2v_sum = scatter(xe, adj.storage.col(), dim=0, reduce="max")
 
-        # collect all msg (including self loop)
+        # collect
         msg_2e = None
         if xe is not None:
             if self.node_self_loop:

@@ -28,7 +28,7 @@ def standardize(features: np.ndarray) -> np.ndarray:
 
 def prepare_data():
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    df = pd.read_csv(f"data/movies.csv")
+    df = pd.read_csv(f"data/movies.csv", encoding='unicode_escape')
 
     df["summary_char_len"] = df["summary"].astype("str").apply(len)
     df["text_char_len"] = df["text"].astype("str").apply(len)
